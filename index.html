@@ -199,13 +199,13 @@
             
             <div id="paymentOptions">
                 <h3>Choose Payment</h3>
-                <div class="payment-option" onclick="confirmOrder('COD')">💵 Cash on Delivery</div>
+                <div class="payment-option" onclick="confirmOrder('COD')">📦 Cash on Delivery</div>
                 <div class="payment-option" onclick="showQRCode()">📱 Pay Online</div>
             </div>
 
             <div id="qrContainer" class="qr-section">
                 <h3>Scan & Pay</h3>
-                <img src="Qr.png" alt="QR">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=biraj@upi" alt="QR">
                 <button onclick="confirmOrder('Online')" style="width:100%; margin-top:10px; background:var(--blue); color:white; border:none; padding:12px; border-radius:8px; font-weight:bold">I HAVE PAID</button>
                 <button class="back-to-pay" onclick="backToPaymentOptions()">← Back to Payment Methods</button>
             </div>
@@ -262,13 +262,12 @@
             };
         }
 
-        const bannerImgs = ["https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800", "https://images.unsplash.com/photo-1607083206968-13611e3d76db?w=800","banner.jpg"];
+        const bannerImgs = ["https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800", "https://images.unsplash.com/photo-1607083206968-13611e3d76db?w=800", "banner.jpg"];
         const bannerWrapper = document.getElementById('bannerWrapper');
         [bannerImgs[2], ...bannerImgs, bannerImgs[0]].forEach(url => bannerWrapper.innerHTML += `<div class="banner-slide"><img src="${url}"></div>`);
         let bIndex = 1; bannerWrapper.style.transform = `translateX(-100%)`;
         setInterval(() => { bIndex++; bannerWrapper.style.transition = "0.5s"; bannerWrapper.style.transform = `translateX(-${bIndex * 100}%)`; if(bIndex === 4) { setTimeout(() => { bannerWrapper.style.transition = "none"; bIndex = 1; bannerWrapper.style.transform = `translateX(-100%)`; }, 500); } }, 3000);
 
-        // UPDATED AUDIO PLAYBACK FUNCTION
         function playSuccessSound() {
             const sound = document.getElementById('successSoundFile');
             if (sound) {
@@ -427,8 +426,20 @@
         function confirmOrder(method) {
             let txn = "NS" + Math.floor(Math.random() * 1000000000);
             let tempOrders = [];
+            let totalOrderValue = 0;
+            
+            // Deciding what items are being bought
             let itemsToOrder = cart.length > 0 ? cart : [{...currentProd, chosenColor: selectedColor, chosenSize: selectedSize}];
             
+            // Generate a detailed string for EmailJS including individual prices
+            let emailItemsString = itemsToOrder.map(item => {
+                totalOrderValue += item.price;
+                return `${item.name} (${item.chosenColor}, Size: ${item.chosenSize}) - Price: ₹${item.price}`;
+            }).join("\n");
+
+            // Final string to send to developer
+            let finalOrderSummary = `${emailItemsString}\n\n--- GRAND TOTAL: ₹${totalOrderValue} ---`;
+
             itemsToOrder.forEach(item => {
                 tempOrders.push({
                     id: Math.floor(1000 + Math.random() * 9000),
@@ -444,13 +455,14 @@
             orderHistory.push(...tempOrders);
             localStorage.setItem('order_history', JSON.stringify(orderHistory));
             
+            // Sending the detailed summary with individual and total prices
             emailjs.send('service_n0rlufv', 'template_jvmtszo', { 
                 to_name: userData.name, 
                 user_name: userData.name, 
                 user_email: userData.email,
                 user_phone: userData.phone, 
                 user_address: userData.addr, 
-                order_items: tempOrders.map(o => o.items).join(", "), 
+                order_items: finalOrderSummary, // Detailed list with individual prices + total
                 payment_method: method + " (Txn: "+txn+")"
             });
 
