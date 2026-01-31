@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Biraj's Mega Store</title>
+    <title> Mega Store</title>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <style>
         :root { --orange: #fb641b; --blue: #2874f0; --dark-blue: #003366; --bg: #f1f3f6; --green: #28a745; }
@@ -55,6 +55,22 @@
         .p-card { background: white; padding: 10px; border-radius: 8px; text-align: center; }
         .p-card img { width: 100%; height: 110px; object-fit: contain; }
 
+        /* Share System Styles */
+        .detail-header { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; }
+        .share-menu-container { position: relative; }
+        .share-dots { font-size: 24px; cursor: pointer; padding: 0 10px; color: #333; }
+        .share-dropdown { 
+            display: none; position: absolute; right: 0; top: 30px; 
+            background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); 
+            z-index: 100; min-width: 150px; overflow: hidden;
+        }
+        .share-dropdown button { 
+            width: 100%; border: none; background: none; padding: 12px 15px; 
+            text-align: left; font-size: 14px; cursor: pointer; border-bottom: 1px solid #eee;
+        }
+        .share-dropdown button:last-child { border-bottom: none; }
+        .share-dropdown button:hover { background: #f8f9fa; }
+
         .detail-card { background: white; padding: 15px; border-radius: 12px; }
         .gallery-wrapper { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; scroll-behavior: smooth; }
         .gallery-wrapper::-webkit-scrollbar { display: none; }
@@ -87,7 +103,6 @@
         .order-card { background: white; padding: 12px; margin-bottom: 10px; border-radius: 10px; border-left: 5px solid var(--blue); display: flex; gap: 12px; align-items: center; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .order-img { width: 65px; height: 65px; object-fit: contain; background: #f9f9f9; border-radius: 5px; border: 1px solid #eee; }
 
-        /* Success Animation UI */
         #success-animation { display: none; text-align: center; overflow: hidden; }
         .success-circle-container { position: relative; width: 140px; height: 140px; margin: 0 auto 15px auto; }
         
@@ -160,7 +175,16 @@
     </div>
 
     <div id="product-detail" class="page">
-        <button onclick="navigateTo('home')" style="border:none; background:none; color:var(--blue); padding:10px 0; font-weight:bold">← Back</button>
+        <div class="detail-header">
+            <button onclick="navigateTo('home')" style="border:none; background:none; color:var(--blue); padding:10px 0; font-weight:bold">← Back</button>
+            <div class="share-menu-container">
+                <span class="share-dots" onclick="toggleShareMenu()">⋮</span>
+                <div id="shareDropdown" class="share-dropdown">
+                    <button onclick="shareLink()">🔗 Copy Link</button>
+                    <button onclick="shareWhatsApp()">🟢 Share on WhatsApp</button>
+                </div>
+            </div>
+        </div>
         <div id="detail-content" class="detail-card"></div>
     </div>
 
@@ -199,13 +223,13 @@
             
             <div id="paymentOptions">
                 <h3>Choose Payment</h3>
-                <div class="payment-option" onclick="confirmOrder('COD')">💵 Cash on Delivery</div>
+                <div class="payment-option" onclick="confirmOrder('COD')">📦 Cash on Delivery</div>
                 <div class="payment-option" onclick="showQRCode()">📱 Pay Online</div>
             </div>
 
             <div id="qrContainer" class="qr-section">
                 <h3>Scan & Pay</h3>
-                <img src="Qr.png" alt="QR">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=biraj@upi" alt="QR">
                 <button onclick="confirmOrder('Online')" style="width:100%; margin-top:10px; background:var(--blue); color:white; border:none; padding:12px; border-radius:8px; font-weight:bold">I HAVE PAID</button>
                 <button class="back-to-pay" onclick="backToPaymentOptions()">← Back to Payment Methods</button>
             </div>
@@ -318,6 +342,37 @@
                 </div>
             `;
             navigateTo('product-detail');
+        }
+
+        // --- Share Functions ---
+        function toggleShareMenu() {
+            const dropdown = document.getElementById('shareDropdown');
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function shareLink() {
+            const productUrl = `${window.location.origin}${window.location.pathname}?id=${currentProd.id}`;
+            navigator.clipboard.writeText(productUrl).then(() => {
+                alert("Product link copied to clipboard!");
+                toggleShareMenu();
+            });
+        }
+
+        function shareWhatsApp() {
+            const productUrl = `${window.location.origin}${window.location.pathname}?id=${currentProd.id}`;
+            const text = `Hey, check out this ${currentProd.name} for only ₹${currentProd.price} at Biraj's Mega Store! ${productUrl}`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+            toggleShareMenu();
+        }
+
+        // Close dropdown when clicking outside
+        window.onclick = function(event) {
+            if (!event.target.matches('.share-dots')) {
+                const dropdowns = document.getElementsByClassName("share-dropdown");
+                for (let i = 0; i < dropdowns.length; i++) {
+                    dropdowns[i].style.display = "none";
+                }
+            }
         }
 
         function changeColor(el, color) {
@@ -474,6 +529,15 @@
             document.getElementById('success-method').innerText = (method === 'COD') ? "CASH ON DELIVERY SECURED" : "ONLINE PAYMENT CONFIRMED";
 
             playSuccessSound();
+
+            // WHATSAPP AUTOMATION
+            const whatsappMessage = "Thank you for shoping. Your order is confirm. -Nexus Shop.";
+            const whatsappUrl = `https://wa.me/${userData.phone}?text=${encodeURIComponent(whatsappMessage)}`;
+            
+            // Open WhatsApp after a short delay to let the success animation show
+            setTimeout(() => {
+                window.open(whatsappUrl, '_blank');
+            }, 1200);
 
             setTimeout(() => {
                 cart = []; 
